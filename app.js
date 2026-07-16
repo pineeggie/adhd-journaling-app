@@ -115,14 +115,14 @@ function render() {
           ${entry.tags.map((tag) => `<span class="tag-badge"># ${escapeHTML(tag)}</span>`).join("")}
         </div>
         <div class="entry-actions">
-          <button type="button" data-action="edit" aria-label="編集">
-            <svg viewBox="0 0 24 24"><path d="M5 19h3.5L19 8.5 15.5 5 5 15.5z"/></svg><span>編集</span>
+          <button type="button" data-action="edit" aria-label="編集" title="編集">
+            <svg viewBox="0 0 24 24"><path d="M5 19h3.5L19 8.5 15.5 5 5 15.5z"/></svg>
           </button>
-          <button type="button" data-action="copy" aria-label="コピー">
-            <svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span>コピー</span>
+          <button type="button" data-action="copy" aria-label="コピー" title="コピー">
+            <svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
           </button>
-          <button class="${entry.loved ? "loved" : ""}" type="button" data-action="love" aria-label="大切に保存">
-            <svg viewBox="0 0 24 24"><path d="M20.8 5.8a5.5 5.5 0 0 0-7.8 0L12 6.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 22l8.8-8.4a5.5 5.5 0 0 0 0-7.8z"/></svg><span>${entry.loved ? "大切" : "残す"}</span>
+          <button class="${entry.loved ? "loved" : ""}" type="button" data-action="love" aria-label="${entry.loved ? "大切から外す" : "大切に保存"}" title="${entry.loved ? "大切から外す" : "大切に保存"}">
+            <svg viewBox="0 0 24 24"><path d="M20.8 5.8a5.5 5.5 0 0 0-7.8 0L12 6.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 22l8.8-8.4a5.5 5.5 0 0 0 0-7.8z"/></svg>
           </button>
         </div>
       </div>
@@ -138,7 +138,7 @@ function openComposer(prompt = "", entry = null) {
   selectedMood = entry?.mood || "";
   selectedTags = entry?.tags ? [...entry.tags] : [];
   entryText.value = entry?.text || "";
-  $("#composeTitle").textContent = entry ? "メモを編集" : "いまを残す";
+  $("#composeTitle").textContent = entry ? "メモを編集" : "";
   const promptChip = $("#activePrompt");
   promptChip.textContent = prompt ? `✦ ${prompt}` : "";
   promptChip.classList.toggle("hidden", !prompt);

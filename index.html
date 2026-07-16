@@ -67,7 +67,7 @@
           <span>ホーム</span>
         </button>
         <button class="nav-item" type="button" data-view="favorites">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 5.8a5.5 5.5 0 0 0-7.8 0L12 6.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 22l8.8-8.4a5.5 5.5 0 0 0 0-7.8z"/></svg>
           <span>大切</span>
         </button>
         <div class="compose-spacer"></div>
@@ -86,18 +86,21 @@
     </div>
 
     <div class="sheet-backdrop hidden" id="sheetBackdrop"></div>
-    <section class="compose-sheet hidden" id="composeSheet" role="dialog" aria-modal="true" aria-labelledby="composeTitle">
+    <section class="compose-sheet hidden" id="composeSheet" role="dialog" aria-modal="true" aria-label="ポスト作成">
       <div class="sheet-handle"></div>
       <header>
         <button type="button" id="cancelCompose">キャンセル</button>
-        <h2 id="composeTitle">いまを残す</h2>
+        <h2 id="composeTitle"></h2>
         <button class="post-button" type="button" id="saveEntry" disabled>残す</button>
       </header>
       <div class="composer-body">
         <div class="composer-avatar">私</div>
         <div class="composer-fields">
           <textarea id="entryText" rows="6" maxlength="500" placeholder="いま、何が頭に浮かんでる？"></textarea>
-          <p class="support-copy">文章じゃなくても、箇条書きでも、一言でも。</p>
+          <div class="composer-hint-row">
+            <p class="support-copy">文章じゃなくても、箇条書きでも、一言でも。</p>
+            <span id="charCount">0 / 500</span>
+          </div>
           <div class="prompt-chip hidden" id="activePrompt"></div>
         </div>
       </div>
@@ -119,7 +122,6 @@
       </div>
       <div class="composer-footer">
         <span>このメモは端末内だけに保存されます</span>
-        <span id="charCount">0 / 500</span>
       </div>
     </section>
 

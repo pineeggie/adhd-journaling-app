@@ -100,8 +100,8 @@ main { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
 .mood-badge, .tag-badge { padding: 4px 8px; border-radius: 999px; font-size: 11px; }
 .mood-badge { background: #f2eee2; }
 .tag-badge { color: var(--accent); background: var(--accent-soft); }
-.entry-actions { display: flex; justify-content: space-between; max-width: 270px; margin-top: 11px; }
-.entry-actions button { display: flex; gap: 5px; align-items: center; padding: 4px 0; border: 0; color: var(--muted); background: none; font-size: 11px; }
+.entry-actions { display: flex; justify-content: flex-end; gap: 18px; margin-top: 11px; }
+.entry-actions button { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: 50%; color: var(--muted); background: none; }
 .entry-actions svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .entry-actions button.loved { color: #c76c69; }
 .entry-actions button.loved svg { fill: currentColor; }
@@ -150,7 +150,9 @@ main { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
 .composer-body { display: grid; grid-template-columns: 36px 1fr; gap: 10px; padding: 18px 18px 8px; }
 .composer-avatar { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; color: white; background: var(--accent); font-size: 11px; font-weight: 700; }
 .composer-fields textarea { width: 100%; min-height: 130px; padding: 2px 0; resize: none; border: 0; outline: 0; color: var(--ink); background: transparent; font-size: 17px; line-height: 1.65; }
-.support-copy { margin: 0 0 7px; color: #aaa89f; font-size: 11px; }
+.composer-hint-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin: 0 0 7px; color: #aaa89f; font-size: 11px; }
+.support-copy { margin: 0; }
+.composer-hint-row #charCount { flex: 0 0 auto; color: var(--muted); font-size: 10px; }
 .prompt-chip { display: inline-block; padding: 6px 9px; border-radius: 9px; color: var(--accent); background: var(--accent-soft); font-size: 11px; }
 .check-in { margin: 4px 18px; padding: 12px 14px; border-radius: 14px; background: #f5f2e9; }
 .check-in p { margin: 0 0 9px; font-size: 12px; font-weight: 700; }
@@ -161,7 +163,7 @@ main { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
 .tag-options { display: flex; gap: 7px; overflow-x: auto; padding: 8px 18px 12px; scrollbar-width: none; }
 .tag-options button { flex: 0 0 auto; padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: white; font-size: 11px; }
 .tag-options button.selected { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-.composer-footer { display: flex; justify-content: space-between; padding: 5px 19px 0; color: var(--muted); font-size: 10px; }
+.composer-footer { padding: 5px 19px 0; color: var(--muted); font-size: 10px; }
 
 .menu-popover { position: fixed; z-index: 60; top: 132px; right: max(16px, calc((100vw - 480px) / 2 + 16px)); overflow: hidden; width: 150px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
 .menu-popover button { display: block; width: 100%; padding: 11px 15px; border: 0; border-bottom: 1px solid var(--line); text-align: left; background: none; font-size: 13px; }
