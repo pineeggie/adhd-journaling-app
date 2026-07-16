@@ -555,7 +555,6 @@ function pickPrompt() {
 
 $("#composeButton").addEventListener("click", () => openComposer());
 $("#emptyCompose").addEventListener("click", () => openComposer());
-$("#addTodo").addEventListener("click", openTodoComposer);
 $("#emptyTodoAdd").addEventListener("click", openTodoComposer);
 $("#cancelCompose").addEventListener("click", closeComposer);
 backdrop.addEventListener("click", closeActiveSheet);
