@@ -1,5 +1,6 @@
 const STORAGE_KEY = "murmur-entries-v1";
 const PROFILE_STORAGE_KEY = "murmur-profile-v1";
+const REFLECTION_STORAGE_KEY = "murmur-reflections-v1";
 const defaultProfile = { displayName: "わたし", userId: "my_journal", image: "" };
 
 const prompts = [
@@ -49,6 +50,7 @@ let activeFilter = "all";
 let activeView = "home";
 let editingId = null;
 let pendingImages = [];
+let reflectionPeriod = "7";
 
 const $ = (selector) => document.querySelector(selector);
 const timeline = $("#timeline");
@@ -337,9 +339,7 @@ function saveEntry() {
     return;
   }
   closeComposer();
-  activeView = "home";
-  setActiveNav("home");
-  render();
+  openTimelineView("home");
   document.querySelector("main").scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -354,6 +354,123 @@ function showToast(message) {
 function setActiveNav(view) {
   document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
   $("#timelineTitle").textContent = view === "favorites" ? "大切に残したメモ" : "タイムライン";
+}
+
+function getReflectionEntries(period = reflectionPeriod) {
+  if (period === "all") return [...entries].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const cutoff = Date.now() - Number(period) * 24 * 60 * 60 * 1000;
+  return entries.filter((entry) => new Date(entry.createdAt).getTime() >= cutoff)
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+}
+
+function reflectionPeriodLabel(period = reflectionPeriod) {
+  return period === "all" ? "これまでのすべて" : `直近${period}日間`;
+}
+
+function reflectionSignature(period = reflectionPeriod) {
+  return getReflectionEntries(period).map((entry) => [entry.id, entry.createdAt, entry.text, entry.mood, Array.isArray(entry.tags) ? entry.tags.join(",") : ""].join("|")).join("\n");
+}
+
+function updateReflectionControls() {
+  const count = getReflectionEntries().length;
+  document.querySelectorAll("[data-period]").forEach((button) => button.classList.toggle("selected", button.dataset.period === reflectionPeriod));
+  $("#reflectionCount").textContent = count;
+  $("#reflectionRange").textContent = `${reflectionPeriodLabel()}のポストが対象です`;
+  $("#generateReflection").disabled = count === 0;
+  $("#generateReflection span:first-child").textContent = count ? "ChatGPT用にコピーする" : "この期間にはポストがありません";
+}
+
+function showReflectionState(state) {
+  ["Start", "Loading", "Result", "Error"].forEach((name) => {
+    $(`#reflection${name}`).classList.toggle("hidden", name.toLowerCase() !== state);
+  });
+}
+
+function formatEntryForReflection(entry, index) {
+  const date = new Date(entry.createdAt);
+  const dateLabel = Number.isNaN(date.getTime()) ? "日付不明" : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const details = [
+    `日付: ${dateLabel}`,
+    entry.mood ? `気分: ${entry.mood}` : "",
+    Array.isArray(entry.tags) && entry.tags.length ? `タグ: ${entry.tags.map((tag) => `#${tag}`).join(" ")}` : ""
+  ].filter(Boolean).join(" / ");
+  return `${index + 1}. ${details}\n${entry.text.trim()}`;
+}
+
+function buildReflectionPrompt(selectedEntries) {
+  return `あなたは日本語のジャーナリング伴走者です。
+以下は私が${reflectionPeriodLabel()}に書いたジャーナルです。
+
+お願い:
+- 全体の流れや傾向を2〜4文で要約してください。
+- 私の小さな工夫、気づき、行動を具体的に見つけて、ポジティブなフィードバックを2〜4文でください。
+- 診断、決めつけ、説教、過度な称賛は避けてください。
+- つらさを無理にポジティブ変換せず、書かれている事実を根拠にしてください。
+- 最後に「よかった兆し」を1〜3個、箇条書きで挙げてください。
+
+ジャーナル:
+${selectedEntries.map(formatEntryForReflection).join("\n\n")}`;
+}
+
+function saveReflectionPrompt(result) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(REFLECTION_STORAGE_KEY) || "{}");
+    saved[reflectionPeriod] = { ...result, period: reflectionPeriod, entryCount: getReflectionEntries().length, signature: reflectionSignature(), createdAt: new Date().toISOString() };
+    localStorage.setItem(REFLECTION_STORAGE_KEY, JSON.stringify(saved));
+  } catch {}
+}
+
+function loadReflectionPrompt(period = reflectionPeriod) {
+  try {
+    const result = JSON.parse(localStorage.getItem(REFLECTION_STORAGE_KEY) || "{}")[period];
+    return result && result.signature === reflectionSignature(period) && typeof result.prompt === "string" ? result : null;
+  } catch { return null; }
+}
+
+function renderReflection(result) {
+  $("#resultPeriod").textContent = `${reflectionPeriodLabel(result.period)}・${result.entryCount}件`;
+  $("#reflectionPrompt").value = result.prompt;
+  showReflectionState("result");
+}
+
+function openInsights() {
+  activeView = "insights";
+  setActiveNav("insights");
+  $("#welcomeView").classList.add("hidden");
+  $("#timelineView").classList.add("hidden");
+  $("#insightsView").classList.remove("hidden");
+  updateReflectionControls();
+  const saved = loadReflectionPrompt();
+  if (saved) renderReflection(saved);
+  else showReflectionState("start");
+  document.querySelector("main").scrollTo({ top: 0 });
+}
+
+function openTimelineView(view) {
+  activeView = view;
+  $("#insightsView").classList.add("hidden");
+  $("#welcomeView").classList.remove("hidden");
+  $("#timelineView").classList.remove("hidden");
+  setActiveNav(view);
+  render();
+}
+
+async function generateReflection() {
+  const selectedEntries = getReflectionEntries();
+  if (!selectedEntries.length) return;
+  const prompt = buildReflectionPrompt(selectedEntries);
+  const result = { prompt, period: reflectionPeriod, entryCount: selectedEntries.length };
+  saveReflectionPrompt(result);
+  renderReflection(result);
+  try {
+    await Promise.race([
+      navigator.clipboard.writeText(prompt),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("copy timeout")), 1200))
+    ]);
+    showToast("ChatGPT用の文章をコピーしました");
+  } catch (error) {
+    showToast("自動コピーできませんでした。文章を選択してコピーしてください");
+  }
 }
 
 function pickPrompt() {
@@ -505,12 +622,21 @@ $("#filterMenu").addEventListener("click", (event) => {
 
 document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => {
   const view = button.dataset.view;
-  if (view === "insights") return showToast(`今週は ${entries.length} 件、言葉を残しました`);
+  if (view === "insights") return openInsights();
   if (view === "settings") return openSettings();
-  activeView = view;
-  setActiveNav(view);
-  render();
+  openTimelineView(view);
 }));
+
+document.querySelectorAll("[data-period]").forEach((button) => button.addEventListener("click", () => {
+  reflectionPeriod = button.dataset.period;
+  updateReflectionControls();
+  const saved = loadReflectionPrompt();
+  if (saved) renderReflection(saved);
+  else showReflectionState("start");
+}));
+$("#generateReflection").addEventListener("click", generateReflection);
+$("#regenerateReflection").addEventListener("click", generateReflection);
+$("#retryReflection").addEventListener("click", generateReflection);
 
 const now = new Date();
 $("#todayLabel").textContent = `${now.getMonth() + 1}月${now.getDate()}日 ${["日", "月", "火", "水", "木", "金", "土"][now.getDay()]}曜日`;
