@@ -52,6 +52,8 @@ let pendingImages = [];
 let reflectionPeriod = "7";
 let todoFilter = "open";
 let composerReturnView = "home";
+let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let activeInsightPanel = "calendar";
 
 const $ = (selector) => document.querySelector(selector);
 const timeline = $("#timeline");
@@ -366,6 +368,92 @@ function todoDateLabel(iso) {
   return `${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
+function dateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function getMonthWeatherSummary(monthDate = calendarMonth) {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const days = new Map();
+  const totals = Object.fromEntries(Object.keys(moodEmoji).map((mood) => [mood, 0]));
+
+  entries.forEach((entry) => {
+    if (!entry.mood || !moodEmoji[entry.mood]) return;
+    const created = new Date(entry.createdAt);
+    if (Number.isNaN(created.getTime()) || created.getFullYear() !== year || created.getMonth() !== month) return;
+
+    const key = dateKey(created);
+    if (!days.has(key)) days.set(key, { count: 0, moods: {} });
+    const summary = days.get(key);
+    summary.count += 1;
+    summary.moods[entry.mood] = (summary.moods[entry.mood] || 0) + 1;
+    totals[entry.mood] += 1;
+  });
+
+  return { days, totals };
+}
+
+function dominantMood(daySummary) {
+  if (!daySummary) return "";
+  return Object.entries(daySummary.moods).sort((a, b) => b[1] - a[1] || Object.keys(moodEmoji).indexOf(a[0]) - Object.keys(moodEmoji).indexOf(b[0]))[0]?.[0] || "";
+}
+
+function renderWeatherCalendar() {
+  const title = $("#weatherCalendarTitle");
+  const totals = $("#weatherTotals");
+  const grid = $("#weatherCalendarGrid");
+  if (!title || !totals || !grid) return;
+
+  const year = calendarMonth.getFullYear();
+  const month = calendarMonth.getMonth();
+  const todayKey = dateKey(new Date());
+  const { days, totals: moodTotals } = getMonthWeatherSummary(calendarMonth);
+  const monthTotal = Object.values(moodTotals).reduce((sum, count) => sum + count, 0);
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+
+  title.textContent = `${year}年${month + 1}月`;
+  totals.innerHTML = monthTotal
+    ? Object.entries(moodTotals).filter(([, count]) => count > 0).map(([mood, count]) => `
+      <span class="weather-total"><span aria-hidden="true">${moodEmoji[mood]}</span>${mood}<strong>${count}</strong></span>
+    `).join("")
+    : `<span class="weather-empty">天気を選んだメモがまだありません</span>`;
+
+  for (let index = 0; index < firstDay; index += 1) cells.push(`<span class="calendar-cell empty" aria-hidden="true"></span>`);
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const cellDate = new Date(year, month, day);
+    const key = dateKey(cellDate);
+    const summary = days.get(key);
+    const mood = dominantMood(summary);
+    const label = summary ? `${month + 1}月${day}日 ${mood} ${summary.count}件` : `${month + 1}月${day}日 記録なし`;
+    cells.push(`
+      <span class="calendar-cell ${key === todayKey ? "today" : ""} ${summary ? "has-weather" : ""}" aria-label="${label}">
+        <span class="calendar-day">${day}</span>
+        ${mood ? `<span class="calendar-weather" title="${mood}">${moodEmoji[mood]}</span>` : ""}
+        ${summary && summary.count > 1 ? `<span class="calendar-count">${summary.count}</span>` : ""}
+      </span>
+    `);
+  }
+
+  grid.innerHTML = cells.join("");
+}
+
+function showInsightPanel(panel = activeInsightPanel) {
+  activeInsightPanel = panel;
+  document.querySelectorAll("[data-insight-panel]").forEach((button) => {
+    const selected = button.dataset.insightPanel === panel;
+    button.classList.toggle("selected", selected);
+    button.setAttribute("aria-selected", String(selected));
+  });
+  document.querySelectorAll(".insight-panel").forEach((item) => {
+    item.classList.toggle("hidden", item.dataset.panel !== panel);
+  });
+  if (panel === "calendar") renderWeatherCalendar();
+  if (panel === "chatgpt") updateReflectionControls();
+}
+
 function getTodoEntries() {
   return entries
     .filter((entry) => Array.isArray(entry.tags) && entry.tags.includes("あとで"))
@@ -499,6 +587,7 @@ function openInsights() {
   $("#timelineView").classList.add("hidden");
   $("#todoView").classList.add("hidden");
   $("#insightsView").classList.remove("hidden");
+  showInsightPanel();
   resetReflection();
   document.querySelector("main").scrollTo({ top: 0 });
 }
@@ -705,12 +794,24 @@ document.querySelectorAll(".nav-item").forEach((button) => button.addEventListen
   openTimelineView(view);
 }));
 
+document.querySelectorAll("[data-insight-panel]").forEach((button) => button.addEventListener("click", () => {
+  showInsightPanel(button.dataset.insightPanel);
+}));
+
 document.querySelectorAll("[data-period]").forEach((button) => button.addEventListener("click", () => {
   const nextPeriod = button.dataset.period;
   if (nextPeriod === reflectionPeriod) return;
   reflectionPeriod = nextPeriod;
   resetReflection();
 }));
+$("#prevCalendarMonth").addEventListener("click", () => {
+  calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1);
+  renderWeatherCalendar();
+});
+$("#nextCalendarMonth").addEventListener("click", () => {
+  calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
+  renderWeatherCalendar();
+});
 $("#generateReflection").addEventListener("click", generateReflection);
 $("#regenerateReflection").addEventListener("click", generateReflection);
 $("#retryReflection").addEventListener("click", generateReflection);

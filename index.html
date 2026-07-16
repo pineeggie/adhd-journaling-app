@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="murmur" />
     <title>murmur — ADHDジャーナル</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=11" />
+    <link rel="stylesheet" href="styles.css?v=13" />
   </head>
   <body>
     <div class="app-shell">
@@ -88,57 +88,84 @@
 
         <section class="insights-view hidden" id="insightsView" aria-labelledby="insightsTitle">
           <div class="insights-hero">
-            <p class="eyebrow">ChatGPTとふりかえる</p>
+            <p class="eyebrow">月の流れをふりかえる</p>
             <h1 id="insightsTitle">残した言葉から、<br />今の自分を見つけよう。</h1>
-            <p>選んだ期間のポストを貼り付け用にまとめます。ChatGPTに渡して、やさしく整理してもらいましょう。</p>
+            <p>カレンダーでこころの天気を眺めたり、ChatGPTに渡すふりかえり文を作れます。</p>
           </div>
 
-          <div class="reflection-controls" aria-label="ふりかえり期間">
-            <button class="selected" type="button" data-period="7">7日間</button>
-            <button type="button" data-period="30">30日間</button>
-            <button type="button" data-period="all">すべて</button>
+          <div class="insights-menu" aria-label="ふりかえり表示">
+            <button class="selected" type="button" data-insight-panel="calendar">カレンダー</button>
+            <button type="button" data-insight-panel="chatgpt">ChatGPT</button>
           </div>
 
-          <section class="reflection-card reflection-start" id="reflectionStart">
-            <div class="reflection-icon" aria-hidden="true">✦</div>
-            <div>
-              <h2><span id="reflectionCount">0</span>件の言葉をふりかえる</h2>
-              <p id="reflectionRange">直近7日間のポストが対象です</p>
+          <div class="insight-panel" id="calendarPanel" data-panel="calendar">
+            <section class="weather-calendar" aria-labelledby="weatherCalendarTitle">
+              <div class="calendar-head">
+                <div>
+                  <p class="calendar-kicker">今月のこころの天気</p>
+                  <h2 id="weatherCalendarTitle"></h2>
+                </div>
+                <div class="calendar-nav" aria-label="月を切り替え">
+                  <button type="button" id="prevCalendarMonth" aria-label="前の月">‹</button>
+                  <button type="button" id="nextCalendarMonth" aria-label="次の月">›</button>
+                </div>
+              </div>
+              <div class="weather-totals" id="weatherTotals" aria-live="polite"></div>
+              <div class="calendar-weekdays" aria-hidden="true">
+                <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+              </div>
+              <div class="calendar-grid" id="weatherCalendarGrid" aria-label="月間カレンダー"></div>
+            </section>
+          </div>
+
+          <div class="insight-panel hidden" id="chatgptPanel" data-panel="chatgpt">
+            <div class="reflection-controls" aria-label="ふりかえり期間">
+              <button class="selected" type="button" data-period="7">7日間</button>
+              <button type="button" data-period="30">30日間</button>
+              <button type="button" data-period="all">すべて</button>
             </div>
-            <button class="reflection-button" id="generateReflection" type="button">
-              <span>ChatGPT用にコピーする</span>
-              <span aria-hidden="true">→</span>
-            </button>
-            <small>コピーするまで、本文はこの端末の外へ送信されません。画像は含めません。</small>
-          </section>
 
-          <section class="reflection-card reflection-loading hidden" id="reflectionLoading" aria-live="polite">
-            <div class="thinking-dots" aria-hidden="true"><span></span><span></span><span></span></div>
-            <h2>あなたの言葉を読んでいます</h2>
-            <p>少しだけ待っていてください。</p>
-          </section>
+            <section class="reflection-card reflection-start" id="reflectionStart">
+              <div class="reflection-icon" aria-hidden="true">✦</div>
+              <div>
+                <h2><span id="reflectionCount">0</span>件の言葉をふりかえる</h2>
+                <p id="reflectionRange">直近7日間のポストが対象です</p>
+              </div>
+              <button class="reflection-button" id="generateReflection" type="button">
+                <span>ChatGPT用にコピーする</span>
+                <span aria-hidden="true">→</span>
+              </button>
+              <small>コピーするまで、本文はこの端末の外へ送信されません。画像は含めません。</small>
+            </section>
 
-          <section class="reflection-result hidden" id="reflectionResult" aria-live="polite">
-            <div class="result-label"><span>✦</span> ChatGPTに貼り付ける内容</div>
-            <article class="reflection-card result-card manual-reflection-card">
-              <p class="result-period" id="resultPeriod"></p>
-              <h2>コピーできました</h2>
-              <p class="manual-reflection-copy">ChatGPTを開いて、そのまま貼り付けてください。</p>
-              <textarea id="reflectionPrompt" readonly rows="12" aria-label="ChatGPTに貼り付けるふりかえり依頼文"></textarea>
-            </article>
-            <div class="manual-reflection-actions">
-              <button class="regenerate-button" id="regenerateReflection" type="button">もう一度コピーする</button>
-              <a class="chatgpt-link" href="https://chatgpt.com/" target="_blank" rel="noreferrer">ChatGPTを開く</a>
-            </div>
-            <p class="ai-note">貼り付けた後のChatGPTの言葉は、しっくりくる部分だけ受け取ってください。</p>
-          </section>
+            <section class="reflection-card reflection-loading hidden" id="reflectionLoading" aria-live="polite">
+              <div class="thinking-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+              <h2>あなたの言葉を読んでいます</h2>
+              <p>少しだけ待っていてください。</p>
+            </section>
 
-          <section class="reflection-card reflection-error hidden" id="reflectionError" role="alert">
-            <span aria-hidden="true">☁︎</span>
-            <h2>ふりかえりを作れませんでした</h2>
-            <p id="reflectionErrorMessage">通信環境を確認して、もう一度試してください。</p>
-            <button type="button" id="retryReflection">もう一度コピーする</button>
-          </section>
+            <section class="reflection-result hidden" id="reflectionResult" aria-live="polite">
+              <div class="result-label"><span>✦</span> ChatGPTに貼り付ける内容</div>
+              <article class="reflection-card result-card manual-reflection-card">
+                <p class="result-period" id="resultPeriod"></p>
+                <h2>コピーできました</h2>
+                <p class="manual-reflection-copy">ChatGPTを開いて、そのまま貼り付けてください。</p>
+                <textarea id="reflectionPrompt" readonly rows="12" aria-label="ChatGPTに貼り付けるふりかえり依頼文"></textarea>
+              </article>
+              <div class="manual-reflection-actions">
+                <button class="regenerate-button" id="regenerateReflection" type="button">もう一度コピーする</button>
+                <a class="chatgpt-link" href="https://chatgpt.com/" target="_blank" rel="noreferrer">ChatGPTを開く</a>
+              </div>
+              <p class="ai-note">貼り付けた後のChatGPTの言葉は、しっくりくる部分だけ受け取ってください。</p>
+            </section>
+
+            <section class="reflection-card reflection-error hidden" id="reflectionError" role="alert">
+              <span aria-hidden="true">☁︎</span>
+              <h2>ふりかえりを作れませんでした</h2>
+              <p id="reflectionErrorMessage">通信環境を確認して、もう一度試してください。</p>
+              <button type="button" id="retryReflection">もう一度コピーする</button>
+            </section>
+          </div>
         </section>
       </main>
 
@@ -256,6 +283,6 @@
     </div>
 
     <div class="toast hidden" id="toast" role="status"></div>
-    <script src="app.js?v=11"></script>
+    <script src="app.js?v=13"></script>
   </body>
 </html>
