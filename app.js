@@ -1,6 +1,5 @@
 const STORAGE_KEY = "murmur-entries-v1";
 const PROFILE_STORAGE_KEY = "murmur-profile-v1";
-const REFLECTION_STORAGE_KEY = "murmur-reflections-v1";
 const defaultProfile = { displayName: "わたし", userId: "my_journal", image: "" };
 
 const prompts = [
@@ -410,6 +409,7 @@ function renderTodos() {
 }
 
 function openTodoView() {
+  if (activeView === "insights") resetReflection();
   activeView = "todos";
   setActiveNav("todos");
   $("#welcomeView").classList.add("hidden");
@@ -437,10 +437,6 @@ function reflectionPeriodLabel(period = reflectionPeriod) {
   return period === "all" ? "これまでのすべて" : `直近${period}日間`;
 }
 
-function reflectionSignature(period = reflectionPeriod) {
-  return getReflectionEntries(period).map((entry) => [entry.id, entry.createdAt, entry.text, entry.mood, Array.isArray(entry.tags) ? entry.tags.join(",") : ""].join("|")).join("\n");
-}
-
 function updateReflectionControls() {
   const count = getReflectionEntries().length;
   document.querySelectorAll("[data-period]").forEach((button) => button.classList.toggle("selected", button.dataset.period === reflectionPeriod));
@@ -454,6 +450,14 @@ function showReflectionState(state) {
   ["Start", "Loading", "Result", "Error"].forEach((name) => {
     $(`#reflection${name}`).classList.toggle("hidden", name.toLowerCase() !== state);
   });
+}
+
+function resetReflection() {
+  $("#resultPeriod").textContent = "";
+  $("#reflectionPrompt").value = "";
+  try { localStorage.removeItem("murmur-reflections-v1"); } catch {}
+  updateReflectionControls();
+  showReflectionState("start");
 }
 
 function formatEntryForReflection(entry, index) {
@@ -482,21 +486,6 @@ function buildReflectionPrompt(selectedEntries) {
 ${selectedEntries.map(formatEntryForReflection).join("\n\n")}`;
 }
 
-function saveReflectionPrompt(result) {
-  try {
-    const saved = JSON.parse(localStorage.getItem(REFLECTION_STORAGE_KEY) || "{}");
-    saved[reflectionPeriod] = { ...result, period: reflectionPeriod, entryCount: getReflectionEntries().length, signature: reflectionSignature(), createdAt: new Date().toISOString() };
-    localStorage.setItem(REFLECTION_STORAGE_KEY, JSON.stringify(saved));
-  } catch {}
-}
-
-function loadReflectionPrompt(period = reflectionPeriod) {
-  try {
-    const result = JSON.parse(localStorage.getItem(REFLECTION_STORAGE_KEY) || "{}")[period];
-    return result && result.signature === reflectionSignature(period) && typeof result.prompt === "string" ? result : null;
-  } catch { return null; }
-}
-
 function renderReflection(result) {
   $("#resultPeriod").textContent = `${reflectionPeriodLabel(result.period)}・${result.entryCount}件`;
   $("#reflectionPrompt").value = result.prompt;
@@ -510,14 +499,12 @@ function openInsights() {
   $("#timelineView").classList.add("hidden");
   $("#todoView").classList.add("hidden");
   $("#insightsView").classList.remove("hidden");
-  updateReflectionControls();
-  const saved = loadReflectionPrompt();
-  if (saved) renderReflection(saved);
-  else showReflectionState("start");
+  resetReflection();
   document.querySelector("main").scrollTo({ top: 0 });
 }
 
 function openTimelineView(view) {
+  if (activeView === "insights") resetReflection();
   activeView = view;
   $("#insightsView").classList.add("hidden");
   $("#todoView").classList.add("hidden");
@@ -532,7 +519,6 @@ async function generateReflection() {
   if (!selectedEntries.length) return;
   const prompt = buildReflectionPrompt(selectedEntries);
   const result = { prompt, period: reflectionPeriod, entryCount: selectedEntries.length };
-  saveReflectionPrompt(result);
   renderReflection(result);
   try {
     await Promise.race([
@@ -720,15 +706,15 @@ document.querySelectorAll(".nav-item").forEach((button) => button.addEventListen
 }));
 
 document.querySelectorAll("[data-period]").forEach((button) => button.addEventListener("click", () => {
-  reflectionPeriod = button.dataset.period;
-  updateReflectionControls();
-  const saved = loadReflectionPrompt();
-  if (saved) renderReflection(saved);
-  else showReflectionState("start");
+  const nextPeriod = button.dataset.period;
+  if (nextPeriod === reflectionPeriod) return;
+  reflectionPeriod = nextPeriod;
+  resetReflection();
 }));
 $("#generateReflection").addEventListener("click", generateReflection);
 $("#regenerateReflection").addEventListener("click", generateReflection);
 $("#retryReflection").addEventListener("click", generateReflection);
+$(".chatgpt-link").addEventListener("click", resetReflection);
 
 const now = new Date();
 $("#todayLabel").textContent = `${now.getMonth() + 1}月${now.getDate()}日 ${["日", "月", "火", "水", "木", "金", "土"][now.getDay()]}曜日`;
