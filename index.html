@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f7f5ef" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="murmur" />
+    <title>murmur — ADHDジャーナル</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <button class="avatar-button" type="button" aria-label="プロフィール">
+          <span class="avatar">私</span>
+        </button>
+        <div class="brand" aria-label="murmur">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M8 23V11.5a4.5 4.5 0 0 1 9 0V23M17 23v-8.5a4.5 4.5 0 0 1 9 0V23" />
+          </svg>
+        </div>
+        <button class="icon-button" id="searchButton" type="button" aria-label="検索">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        </button>
+      </header>
+
+      <main>
+        <section class="welcome" aria-labelledby="greeting">
+          <p class="eyebrow" id="todayLabel"></p>
+          <h1 id="greeting">頭の中を、<br />ここに置いていこう。</h1>
+          <button class="quick-prompt" id="promptButton" type="button">
+            <span class="spark">✦</span>
+            <span><strong>書くことが浮かばない？</strong><small id="promptText">いま頭を占めていることは？</small></span>
+            <span aria-hidden="true">›</span>
+          </button>
+        </section>
+
+        <section class="timeline-section" aria-labelledby="timelineTitle">
+          <div class="section-heading">
+            <h2 id="timelineTitle">自分のタイムライン</h2>
+            <button class="filter-button" id="filterButton" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
+              <span id="filterLabel">すべて</span>
+            </button>
+          </div>
+          <div class="active-search hidden" id="searchPanel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+            <input id="searchInput" type="search" placeholder="過去のメモを検索" autocomplete="off" />
+            <button id="closeSearch" type="button" aria-label="検索を閉じる">×</button>
+          </div>
+          <div class="timeline" id="timeline" aria-live="polite"></div>
+          <div class="empty-state hidden" id="emptyState">
+            <span>☁︎</span>
+            <h3>まだ何もありません</h3>
+            <p>まとまっていなくて大丈夫。<br />最初のひとことを置いてみよう。</p>
+            <button type="button" id="emptyCompose">ひとこと書く</button>
+          </div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="メインナビゲーション">
+        <button class="nav-item active" type="button" data-view="home">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/></svg>
+          <span>ホーム</span>
+        </button>
+        <button class="nav-item" type="button" data-view="favorites">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9z"/></svg>
+          <span>大切</span>
+        </button>
+        <div class="compose-spacer"></div>
+        <button class="nav-item" type="button" data-view="insights">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V9m7 10V5m7 14v-7"/></svg>
+          <span>ふりかえり</span>
+        </button>
+        <button class="nav-item" id="settingsButton" type="button" data-view="settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 13.5v-3l-2.2-.5a7 7 0 0 0-.7-1.7l1.2-1.9-2.1-2.1-1.9 1.2a7 7 0 0 0-1.7-.7L11 2.6H8l-.5 2.2a7 7 0 0 0-1.7.7L3.9 4.3 1.8 6.4 3 8.3a7 7 0 0 0-.7 1.7L.1 10.5v3l2.2.5c.2.6.4 1.2.7 1.7l-1.2 1.9 2.1 2.1 1.9-1.2c.5.3 1.1.5 1.7.7l.5 2.2h3l.5-2.2c.6-.2 1.2-.4 1.7-.7l1.9 1.2 2.1-2.1-1.2-1.9c.3-.5.5-1.1.7-1.7z" transform="translate(2) scale(.84)"/></svg>
+          <span>設定</span>
+        </button>
+        <button class="compose-fab" id="composeButton" type="button" aria-label="新しいメモを書く">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19h3.5L19 8.5 15.5 5 5 15.5zM13.8 6.7l3.5 3.5M5 19l.8-3.5 2.7 2.7"/></svg>
+        </button>
+      </nav>
+    </div>
+
+    <div class="sheet-backdrop hidden" id="sheetBackdrop"></div>
+    <section class="compose-sheet hidden" id="composeSheet" role="dialog" aria-modal="true" aria-labelledby="composeTitle">
+      <div class="sheet-handle"></div>
+      <header>
+        <button type="button" id="cancelCompose">キャンセル</button>
+        <h2 id="composeTitle">いまを残す</h2>
+        <button class="post-button" type="button" id="saveEntry" disabled>残す</button>
+      </header>
+      <div class="composer-body">
+        <div class="composer-avatar">私</div>
+        <div class="composer-fields">
+          <textarea id="entryText" rows="6" maxlength="500" placeholder="いま、何が頭に浮かんでる？"></textarea>
+          <p class="support-copy">文章じゃなくても、箇条書きでも、一言でも。</p>
+          <div class="prompt-chip hidden" id="activePrompt"></div>
+        </div>
+      </div>
+      <div class="check-in">
+        <p>いまの自分 <span>任意</span></p>
+        <div class="mood-options" id="moodOptions">
+          <button type="button" data-mood="晴れ" aria-label="晴れ">☀️</button>
+          <button type="button" data-mood="ふつう" aria-label="ふつう">🌤️</button>
+          <button type="button" data-mood="曇り" aria-label="曇り">☁️</button>
+          <button type="button" data-mood="雨" aria-label="雨">🌧️</button>
+          <button type="button" data-mood="嵐" aria-label="嵐">⛈️</button>
+        </div>
+      </div>
+      <div class="tag-options" id="tagOptions">
+        <button type="button" data-tag="気づき"># 気づき</button>
+        <button type="button" data-tag="モヤモヤ"># モヤモヤ</button>
+        <button type="button" data-tag="できた"># できた</button>
+        <button type="button" data-tag="あとで"># あとで</button>
+      </div>
+      <div class="composer-footer">
+        <span>このメモは端末内だけに保存されます</span>
+        <span id="charCount">0 / 500</span>
+      </div>
+    </section>
+
+    <div class="menu-popover hidden" id="filterMenu" role="menu">
+      <button type="button" data-filter="all">すべて</button>
+      <button type="button" data-filter="today">今日</button>
+      <button type="button" data-filter="気づき"># 気づき</button>
+      <button type="button" data-filter="モヤモヤ"># モヤモヤ</button>
+      <button type="button" data-filter="できた"># できた</button>
+      <button type="button" data-filter="あとで"># あとで</button>
+    </div>
+
+    <div class="toast hidden" id="toast" role="status"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
