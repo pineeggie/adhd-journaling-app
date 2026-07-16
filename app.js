@@ -51,6 +51,8 @@ let activeView = "home";
 let editingId = null;
 let pendingImages = [];
 let reflectionPeriod = "7";
+let todoFilter = "open";
+let composerReturnView = "home";
 
 const $ = (selector) => document.querySelector(selector);
 const timeline = $("#timeline");
@@ -189,6 +191,7 @@ function render() {
 }
 
 function openComposer(prompt = "", entry = null) {
+  composerReturnView = activeView === "todos" ? "todos" : "home";
   activePromptText = prompt;
   editingId = entry?.id || null;
   selectedMood = entry?.mood || "";
@@ -329,6 +332,7 @@ function saveEntry() {
       prompt: activePromptText,
       images: [...pendingImages],
       loved: false,
+      todoCompleted: false,
       createdAt: new Date().toISOString()
     });
     showToast("タイムラインに残しました");
@@ -339,7 +343,8 @@ function saveEntry() {
     return;
   }
   closeComposer();
-  openTimelineView("home");
+  if (composerReturnView === "todos") openTodoView();
+  else openTimelineView("home");
   document.querySelector("main").scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -354,6 +359,71 @@ function showToast(message) {
 function setActiveNav(view) {
   document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
   $("#timelineTitle").textContent = view === "favorites" ? "大切に残したメモ" : "タイムライン";
+}
+
+function todoDateLabel(iso) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function getTodoEntries() {
+  return entries
+    .filter((entry) => Array.isArray(entry.tags) && entry.tags.includes("あとで"))
+    .sort((a, b) => Number(Boolean(a.todoCompleted)) - Number(Boolean(b.todoCompleted)) || new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+function renderTodos() {
+  const todos = getTodoEntries();
+  const completed = todos.filter((entry) => entry.todoCompleted).length;
+  const open = todos.length - completed;
+  const visible = todoFilter === "open" ? todos.filter((entry) => !entry.todoCompleted) : todos;
+  const progress = todos.length ? Math.round((completed / todos.length) * 100) : 0;
+
+  $("#todoOpenCount").textContent = open;
+  $("#todoProgressBar").style.width = `${progress}%`;
+  $("#todoProgressLabel").textContent = `${completed}件完了`;
+  document.querySelectorAll("[data-todo-filter]").forEach((button) => button.classList.toggle("selected", button.dataset.todoFilter === todoFilter));
+  $("#todoList").innerHTML = visible.map((entry) => `
+    <article class="todo-item ${entry.todoCompleted ? "completed" : ""}" data-id="${entry.id}">
+      <button class="todo-check" type="button" data-todo-action="toggle" aria-label="${entry.todoCompleted ? "未完了に戻す" : "完了にする"}" aria-pressed="${Boolean(entry.todoCompleted)}">
+        <span aria-hidden="true">${entry.todoCompleted ? "✓" : ""}</span>
+      </button>
+      <button class="todo-content" type="button" data-todo-action="edit" aria-label="投稿を編集">
+        <span class="todo-text">${escapeHTML(entry.text || "画像付きの投稿")}</span>
+        <span class="todo-date">${todoDateLabel(entry.createdAt)}の投稿</span>
+      </button>
+      <button class="todo-more" type="button" data-todo-action="edit" aria-label="投稿を編集">›</button>
+    </article>
+  `).join("");
+
+  const isEmpty = visible.length === 0;
+  $("#todoList").classList.toggle("hidden", isEmpty);
+  $("#todoEmpty").classList.toggle("hidden", !isEmpty);
+  if (todoFilter === "open" && todos.length > 0 && open === 0) {
+    $("#todoEmptyTitle").textContent = "ぜんぶ完了しました";
+    $("#todoEmptyCopy").textContent = "おつかれさま。完了した項目は「すべて」から見返せます。";
+  } else {
+    $("#todoEmptyTitle").textContent = "いまは空っぽです";
+    $("#todoEmptyCopy").textContent = "投稿に「#あとで」を付けると、ここに追加されます。";
+  }
+}
+
+function openTodoView() {
+  activeView = "todos";
+  setActiveNav("todos");
+  $("#welcomeView").classList.add("hidden");
+  $("#timelineView").classList.add("hidden");
+  $("#insightsView").classList.add("hidden");
+  $("#todoView").classList.remove("hidden");
+  renderTodos();
+  document.querySelector("main").scrollTo({ top: 0 });
+}
+
+function openTodoComposer() {
+  openComposer();
+  selectedTags = ["あとで"];
+  $("#tagOptions").querySelectorAll("button").forEach((button) => button.classList.toggle("selected", button.dataset.tag === "あとで"));
 }
 
 function getReflectionEntries(period = reflectionPeriod) {
@@ -438,6 +508,7 @@ function openInsights() {
   setActiveNav("insights");
   $("#welcomeView").classList.add("hidden");
   $("#timelineView").classList.add("hidden");
+  $("#todoView").classList.add("hidden");
   $("#insightsView").classList.remove("hidden");
   updateReflectionControls();
   const saved = loadReflectionPrompt();
@@ -449,6 +520,7 @@ function openInsights() {
 function openTimelineView(view) {
   activeView = view;
   $("#insightsView").classList.add("hidden");
+  $("#todoView").classList.add("hidden");
   $("#welcomeView").classList.remove("hidden");
   $("#timelineView").classList.remove("hidden");
   setActiveNav(view);
@@ -483,6 +555,8 @@ function pickPrompt() {
 
 $("#composeButton").addEventListener("click", () => openComposer());
 $("#emptyCompose").addEventListener("click", () => openComposer());
+$("#addTodo").addEventListener("click", openTodoComposer);
+$("#emptyTodoAdd").addEventListener("click", openTodoComposer);
 $("#cancelCompose").addEventListener("click", closeComposer);
 backdrop.addEventListener("click", closeActiveSheet);
 entryText.addEventListener("input", updateComposerState);
@@ -599,6 +673,25 @@ timeline.addEventListener("click", async (event) => {
   }
 });
 
+$("#todoList").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-todo-action]");
+  if (!button) return;
+  const entry = entries.find((candidate) => candidate.id === button.closest(".todo-item")?.dataset.id);
+  if (!entry) return;
+  if (button.dataset.todoAction === "toggle") {
+    entry.todoCompleted = !entry.todoCompleted;
+    persist();
+    renderTodos();
+    showToast(entry.todoCompleted ? "完了にしました" : "未完了に戻しました");
+  }
+  if (button.dataset.todoAction === "edit") openComposer(entry.prompt || "", entry);
+});
+
+document.querySelectorAll("[data-todo-filter]").forEach((button) => button.addEventListener("click", () => {
+  todoFilter = button.dataset.todoFilter;
+  renderTodos();
+}));
+
 $("#searchButton").addEventListener("click", () => {
   $("#searchPanel").classList.remove("hidden");
   $("#searchInput").focus();
@@ -623,7 +716,7 @@ $("#filterMenu").addEventListener("click", (event) => {
 document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => {
   const view = button.dataset.view;
   if (view === "insights") return openInsights();
-  if (view === "settings") return openSettings();
+  if (view === "todos") return openTodoView();
   openTimelineView(view);
 }));
 

@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="murmur" />
     <title>murmur — ADHDジャーナル</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=10" />
+    <link rel="stylesheet" href="styles.css?v=11" />
   </head>
   <body>
     <div class="app-shell">
@@ -57,6 +57,33 @@
             <h3>まだ何もありません</h3>
             <p>まとまっていなくて大丈夫。<br />最初のひとことを置いてみよう。</p>
             <button type="button" id="emptyCompose">ひとこと書く</button>
+          </div>
+        </section>
+
+        <section class="todo-view hidden" id="todoView" aria-labelledby="todoTitle">
+          <div class="todo-hero">
+            <p class="eyebrow">#あとで を、忘れない</p>
+            <h1 id="todoTitle">あとでやること</h1>
+            <p>「#あとで」を付けた投稿が、自動でここに並びます。</p>
+          </div>
+          <div class="todo-summary" aria-live="polite">
+            <div><strong id="todoOpenCount">0</strong><span>のこり</span></div>
+            <div class="todo-progress" aria-hidden="true"><span id="todoProgressBar"></span></div>
+            <span id="todoProgressLabel">0件完了</span>
+          </div>
+          <div class="todo-toolbar">
+            <div class="todo-filters" aria-label="ToDoの表示">
+              <button class="selected" type="button" data-todo-filter="open">未完了</button>
+              <button type="button" data-todo-filter="all">すべて</button>
+            </div>
+            <button class="todo-add" id="addTodo" type="button">＋ 追加</button>
+          </div>
+          <div class="todo-list" id="todoList"></div>
+          <div class="todo-empty hidden" id="todoEmpty">
+            <span aria-hidden="true">✓</span>
+            <h2 id="todoEmptyTitle">いまは空っぽです</h2>
+            <p id="todoEmptyCopy">投稿に「#あとで」を付けると、ここに追加されます。</p>
+            <button type="button" id="emptyTodoAdd">やることを残す</button>
           </div>
         </section>
 
@@ -126,13 +153,13 @@
           <span>大切</span>
         </button>
         <div class="compose-spacer"></div>
+        <button class="nav-item" type="button" data-view="todos">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 2.5 2.5L16 9"/></svg>
+          <span>あとで</span>
+        </button>
         <button class="nav-item" type="button" data-view="insights">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V9m7 10V5m7 14v-7"/></svg>
           <span>ふりかえり</span>
-        </button>
-        <button class="nav-item" id="settingsButton" type="button" data-view="settings">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 13.5v-3l-2.2-.5a7 7 0 0 0-.7-1.7l1.2-1.9-2.1-2.1-1.9 1.2a7 7 0 0 0-1.7-.7L11 2.6H8l-.5 2.2a7 7 0 0 0-1.7.7L3.9 4.3 1.8 6.4 3 8.3a7 7 0 0 0-.7 1.7L.1 10.5v3l2.2.5c.2.6.4 1.2.7 1.7l-1.2 1.9 2.1 2.1 1.9-1.2c.5.3 1.1.5 1.7.7l.5 2.2h3l.5-2.2c.6-.2 1.2-.4 1.7-.7l1.9 1.2 2.1-2.1-1.2-1.9c.3-.5.5-1.1.7-1.7z" transform="translate(2) scale(.84)"/></svg>
-          <span>設定</span>
         </button>
         <button class="compose-fab" id="composeButton" type="button" aria-label="新しいメモを書く">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19h3.5L19 8.5 15.5 5 5 15.5zM13.8 6.7l3.5 3.5M5 19l.8-3.5 2.7 2.7"/></svg>
@@ -230,6 +257,6 @@
     </div>
 
     <div class="toast hidden" id="toast" role="status"></div>
-    <script src="app.js?v=10"></script>
+    <script src="app.js?v=11"></script>
   </body>
 </html>
