@@ -1,4 +1,6 @@
 const STORAGE_KEY = "murmur-entries-v1";
+const PROFILE_STORAGE_KEY = "murmur-profile-v1";
+const defaultProfile = { displayName: "わたし", userId: "my_journal", image: "" };
 
 const prompts = [
   "いま頭を占めていることは？",
@@ -39,6 +41,7 @@ const seedEntries = [
 const moodEmoji = { 晴れ: "☀️", ふつう: "🌤️", 曇り: "☁️", 雨: "🌧️", 嵐: "⛈️" };
 
 let entries = loadEntries();
+let profile = loadProfile();
 let selectedMood = "";
 let selectedTags = [];
 let activePromptText = "";
@@ -53,6 +56,8 @@ const sheet = $("#composeSheet");
 const backdrop = $("#sheetBackdrop");
 const entryText = $("#entryText");
 const saveButton = $("#saveEntry");
+const settingsSheet = $("#settingsSheet");
+let pendingProfileImage = "";
 
 function loadEntries() {
   try {
@@ -65,6 +70,38 @@ function loadEntries() {
 
 function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+function loadProfile() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY));
+    if (!saved || typeof saved !== "object") return { ...defaultProfile };
+    return {
+      displayName: typeof saved.displayName === "string" && saved.displayName.trim() ? saved.displayName.trim().slice(0, 30) : defaultProfile.displayName,
+      userId: typeof saved.userId === "string" && /^[a-zA-Z0-9_]+$/.test(saved.userId) ? saved.userId.slice(0, 20) : defaultProfile.userId,
+      image: typeof saved.image === "string" ? saved.image : ""
+    };
+  } catch {
+    return { ...defaultProfile };
+  }
+}
+
+function profileInitial(name = profile.displayName) {
+  return Array.from(name.trim())[0] || "私";
+}
+
+function safeProfileImage(image = profile.image) {
+  return typeof image === "string" && /^data:image\/(?:png|jpe?g|webp);base64,/.test(image) ? image : "";
+}
+
+function avatarHTML(image = profile.image, name = profile.displayName) {
+  const safeImage = safeProfileImage(image);
+  return safeImage ? `<img src="${safeImage}" alt="" />` : escapeHTML(profileInitial(name));
+}
+
+function renderProfile() {
+  document.querySelectorAll("[data-profile-avatar]").forEach((avatar) => { avatar.innerHTML = avatarHTML(); });
+  $("#profilePhotoPreview").innerHTML = avatarHTML(pendingProfileImage || profile.image);
 }
 
 function escapeHTML(value) {
@@ -101,10 +138,10 @@ function render() {
   const visible = getVisibleEntries();
   timeline.innerHTML = visible.map((entry) => `
     <article class="entry" data-id="${entry.id}">
-      <div class="entry-avatar">私</div>
+      <div class="entry-avatar profile-avatar">${avatarHTML()}</div>
       <div>
         <div class="entry-head">
-          <strong>わたし</strong><span class="handle">@my_journal</span><span>·</span>
+          <strong>${escapeHTML(profile.displayName)}</strong><span class="handle">@${escapeHTML(profile.userId)}</span><span>·</span>
           <time datetime="${entry.createdAt}">${relativeTime(entry.createdAt)}</time>
           <button class="entry-menu" type="button" data-action="delete" aria-label="このメモを削除">···</button>
         </div>
@@ -159,6 +196,53 @@ function closeComposer() {
   editingId = null;
 }
 
+function openSettings() {
+  pendingProfileImage = profile.image;
+  $("#displayNameInput").value = profile.displayName;
+  $("#userIdInput").value = profile.userId;
+  renderProfile();
+  settingsSheet.classList.remove("hidden");
+  backdrop.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closeSettings() {
+  settingsSheet.classList.add("hidden");
+  backdrop.classList.add("hidden");
+  document.body.style.overflow = "";
+  pendingProfileImage = "";
+}
+
+function closeActiveSheet() {
+  if (!settingsSheet.classList.contains("hidden")) closeSettings();
+  else closeComposer();
+}
+
+function resizeProfileImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = reject;
+      image.onload = () => {
+        const size = 256;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext("2d");
+        const crop = Math.min(image.naturalWidth, image.naturalHeight);
+        const sx = (image.naturalWidth - crop) / 2;
+        const sy = (image.naturalHeight - crop) / 2;
+        context.drawImage(image, sx, sy, crop, crop, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function updateComposerState() {
   const length = entryText.value.length;
   $("#charCount").textContent = `${length} / 500`;
@@ -202,7 +286,7 @@ function showToast(message) {
 
 function setActiveNav(view) {
   document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
-  $("#timelineTitle").textContent = view === "favorites" ? "大切に残したメモ" : "自分のタイムライン";
+  $("#timelineTitle").textContent = view === "favorites" ? "大切に残したメモ" : "タイムライン";
 }
 
 function pickPrompt() {
@@ -216,9 +300,48 @@ function pickPrompt() {
 $("#composeButton").addEventListener("click", () => openComposer());
 $("#emptyCompose").addEventListener("click", () => openComposer());
 $("#cancelCompose").addEventListener("click", closeComposer);
-backdrop.addEventListener("click", closeComposer);
+backdrop.addEventListener("click", closeActiveSheet);
 entryText.addEventListener("input", updateComposerState);
 saveButton.addEventListener("click", saveEntry);
+
+$("#profileButton").addEventListener("click", openSettings);
+$("#cancelSettings").addEventListener("click", closeSettings);
+$("#profilePhotoButton").addEventListener("click", () => $("#profilePhotoInput").click());
+$("#changePhotoButton").addEventListener("click", () => $("#profilePhotoInput").click());
+$("#profilePhotoInput").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) return showToast("画像ファイルを選んでください");
+  try {
+    pendingProfileImage = await resizeProfileImage(file);
+    $("#profilePhotoPreview").innerHTML = avatarHTML(pendingProfileImage, $("#displayNameInput").value);
+  } catch {
+    showToast("画像を読み込めませんでした");
+  }
+  event.target.value = "";
+});
+$("#displayNameInput").addEventListener("input", () => {
+  if (!pendingProfileImage) $("#profilePhotoPreview").textContent = profileInitial($("#displayNameInput").value);
+});
+$("#userIdInput").addEventListener("input", (event) => {
+  event.target.value = event.target.value.replace(/^@/, "").replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20);
+});
+$("#profileForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const displayName = $("#displayNameInput").value.trim();
+  const userId = $("#userIdInput").value.trim();
+  if (!displayName || !userId) return showToast("表示名とIDを入力してください");
+  profile = { displayName, userId, image: pendingProfileImage };
+  try {
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+  } catch {
+    return showToast("プロフィールを保存できませんでした");
+  }
+  closeSettings();
+  renderProfile();
+  render();
+  showToast("プロフィールを保存しました");
+});
 
 $("#promptButton").addEventListener("click", () => openComposer($("#promptText").textContent));
 $("#promptButton").addEventListener("contextmenu", (event) => { event.preventDefault(); pickPrompt(); });
@@ -285,7 +408,7 @@ $("#filterMenu").addEventListener("click", (event) => {
 document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => {
   const view = button.dataset.view;
   if (view === "insights") return showToast(`今週は ${entries.length} 件、言葉を残しました`);
-  if (view === "settings") return showToast("データはこの端末内に保存されています");
+  if (view === "settings") return openSettings();
   activeView = view;
   setActiveNav(view);
   render();
@@ -294,6 +417,7 @@ document.querySelectorAll(".nav-item").forEach((button) => button.addEventListen
 const now = new Date();
 $("#todayLabel").textContent = `${now.getMonth() + 1}月${now.getDate()}日 ${["日", "月", "火", "水", "木", "金", "土"][now.getDay()]}曜日`;
 $("#promptText").textContent = prompts[now.getDate() % prompts.length];
+renderProfile();
 render();
 
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));

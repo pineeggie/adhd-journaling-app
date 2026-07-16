@@ -14,8 +14,8 @@
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <button class="avatar-button" type="button" aria-label="プロフィール">
-          <span class="avatar">私</span>
+        <button class="avatar-button" id="profileButton" type="button" aria-label="プロフィール設定を開く">
+          <span class="avatar profile-avatar" data-profile-avatar>私</span>
         </button>
         <div class="brand" aria-label="murmur">
           <svg viewBox="0 0 32 32" aria-hidden="true">
@@ -40,7 +40,7 @@
 
         <section class="timeline-section" aria-labelledby="timelineTitle">
           <div class="section-heading">
-            <h2 id="timelineTitle">自分のタイムライン</h2>
+            <h2 id="timelineTitle">タイムライン</h2>
             <button class="filter-button" id="filterButton" type="button">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
               <span id="filterLabel">すべて</span>
@@ -94,7 +94,7 @@
         <button class="post-button" type="button" id="saveEntry" disabled>残す</button>
       </header>
       <div class="composer-body">
-        <div class="composer-avatar">私</div>
+        <div class="composer-avatar profile-avatar" data-profile-avatar>私</div>
         <div class="composer-fields">
           <textarea id="entryText" rows="6" maxlength="500" placeholder="いま、何が頭に浮かんでる？"></textarea>
           <div class="composer-hint-row">
@@ -123,6 +123,37 @@
       <div class="composer-footer">
         <span>このメモは端末内だけに保存されます</span>
       </div>
+    </section>
+
+    <section class="settings-sheet hidden" id="settingsSheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="sheet-handle"></div>
+      <header>
+        <button type="button" id="cancelSettings">キャンセル</button>
+        <h2 id="settingsTitle">プロフィール</h2>
+        <button class="post-button" type="submit" id="saveProfile" form="profileForm">保存</button>
+      </header>
+      <form class="profile-form" id="profileForm">
+        <div class="profile-photo-field">
+          <button class="profile-photo-button" id="profilePhotoButton" type="button" aria-label="プロフィール画像を変更">
+            <span class="profile-photo-preview profile-avatar" id="profilePhotoPreview">私</span>
+            <span class="photo-edit-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 8h3l1.4-2h7.2L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+            </span>
+          </button>
+          <button class="change-photo-button" id="changePhotoButton" type="button">プロフィール画像を変更</button>
+          <input class="visually-hidden" id="profilePhotoInput" type="file" accept="image/*" />
+        </div>
+        <label class="profile-field">
+          <span>ユーザー表示名</span>
+          <input id="displayNameInput" type="text" maxlength="30" autocomplete="name" placeholder="わたし" required />
+        </label>
+        <label class="profile-field">
+          <span>ID</span>
+          <span class="id-input-wrap"><span aria-hidden="true">@</span><input id="userIdInput" type="text" maxlength="20" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="my_journal" required /></span>
+          <small>半角英数字とアンダースコアが使えます</small>
+        </label>
+        <p class="profile-storage-note">プロフィールもこの端末内だけに保存されます。</p>
+      </form>
     </section>
 
     <div class="menu-popover hidden" id="filterMenu" role="menu">
