@@ -15,7 +15,7 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; background: #e9e8e3; }
+body { height: 100dvh; margin: 0; overflow: hidden; background: #e9e8e3; }
 button, input, textarea { font: inherit; }
 button { color: inherit; }
 button, [role="button"] { -webkit-tap-highlight-color: transparent; }
@@ -25,7 +25,7 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; }
 .app-shell {
   position: relative;
   width: min(100%, 480px);
-  min-height: 100dvh;
+  height: 100dvh;
   margin: 0 auto;
   overflow: hidden;
   background:
@@ -60,9 +60,14 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; }
 .icon-button svg { width: 23px; fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; }
 
 main {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding-top: calc(58px + env(safe-area-inset-top));
   padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  scrollbar-width: none;
 }
+main::-webkit-scrollbar { display: none; }
 .welcome {
   position: sticky;
   z-index: 0;

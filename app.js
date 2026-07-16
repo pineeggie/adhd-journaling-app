@@ -340,7 +340,7 @@ function saveEntry() {
   activeView = "home";
   setActiveNav("home");
   render();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  document.querySelector("main").scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function showToast(message) {
