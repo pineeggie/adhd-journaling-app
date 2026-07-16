@@ -518,4 +518,25 @@ $("#promptText").textContent = prompts[now.getDate() % prompts.length];
 renderProfile();
 render();
 
-if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+if ("serviceWorker" in navigator) window.addEventListener("load", async () => {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing || sessionStorage.getItem("murmur-sw-refreshed") === "1") return;
+    refreshing = true;
+    sessionStorage.setItem("murmur-sw-refreshed", "1");
+    location.reload();
+  });
+
+  try {
+    const registration = await navigator.serviceWorker.register("./sw.js");
+    await registration.update();
+    if (registration.waiting) registration.waiting.postMessage({ type: "SKIP_WAITING" });
+    registration.addEventListener("updatefound", () => {
+      const worker = registration.installing;
+      if (!worker) return;
+      worker.addEventListener("statechange", () => {
+        if (worker.state === "installed" && navigator.serviceWorker.controller) worker.postMessage({ type: "SKIP_WAITING" });
+      });
+    });
+  } catch {}
+});
