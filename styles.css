@@ -133,7 +133,7 @@ main::-webkit-scrollbar { display: none; }
 .mood-badge, .tag-badge { padding: 4px 8px; border-radius: 999px; font-size: 11px; }
 .mood-badge { background: #f2eee2; }
 .tag-badge { color: var(--accent); background: var(--accent-soft); }
-.entry-actions { display: flex; justify-content: flex-end; gap: 18px; margin-top: 11px; }
+.entry-actions { display: flex; justify-content: flex-end; gap: 14px; margin-top: 11px; }
 .entry-actions button { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: 50%; color: var(--muted); background: none; }
 .entry-actions svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .entry-actions button.loved { color: #c76c69; }

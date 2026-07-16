@@ -155,6 +155,22 @@ function getVisibleEntries() {
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
+function buildShareText(entry) {
+  const parts = [
+    entry.text || (Array.isArray(entry.images) && entry.images.length ? "画像付きのジャーナル" : ""),
+    entry.mood ? `${moodEmoji[entry.mood]} ${entry.mood}` : "",
+    Array.isArray(entry.tags) && entry.tags.length ? entry.tags.map((tag) => `#${tag}`).join(" ") : ""
+  ].filter(Boolean);
+  return parts.join("\n\n").slice(0, 260);
+}
+
+function shareEntryToX(entry) {
+  const text = buildShareText(entry);
+  if (!text) return showToast("共有できる内容がありません");
+  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
 function render() {
   const visible = getVisibleEntries();
   timeline.innerHTML = visible.map((entry) => `
@@ -179,6 +195,9 @@ function render() {
           </button>
           <button type="button" data-action="copy" aria-label="コピー" title="コピー">
             <svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+          </button>
+          <button type="button" data-action="share-x" aria-label="Xに投稿" title="Xに投稿">
+            <svg viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 4v11M8 8l4-4 4 4"/></svg>
           </button>
           <button class="${entry.loved ? "loved" : ""}" type="button" data-action="love" aria-label="${entry.loved ? "大切から外す" : "大切に保存"}" title="${entry.loved ? "大切から外す" : "大切に保存"}">
             <svg viewBox="0 0 24 24"><path d="M20.8 5.8a5.5 5.5 0 0 0-7.8 0L12 6.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 22l8.8-8.4a5.5 5.5 0 0 0 0-7.8z"/></svg>
@@ -739,6 +758,7 @@ timeline.addEventListener("click", async (event) => {
     try { await navigator.clipboard.writeText(entry.text); showToast("コピーしました"); }
     catch { showToast("コピーできませんでした"); }
   }
+  if (button.dataset.action === "share-x") shareEntryToX(entry);
   if (button.dataset.action === "delete") {
     if (confirm("このメモを削除しますか？")) {
       entries = entries.filter((item) => item.id !== entry.id);
