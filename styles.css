@@ -34,14 +34,17 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; }
 }
 
 .topbar {
-  position: sticky;
-  z-index: 10;
+  position: fixed;
+  z-index: 30;
   top: 0;
+  left: 50%;
   display: grid;
   grid-template-columns: 44px 1fr 44px;
   align-items: center;
+  width: min(100%, 480px);
   height: calc(58px + env(safe-area-inset-top));
   padding: env(safe-area-inset-top) 16px 0;
+  transform: translateX(-50%);
   border-bottom: 1px solid rgba(231, 227, 217, .85);
   background: rgba(247, 245, 239, .88);
   backdrop-filter: blur(18px);
@@ -56,8 +59,16 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; }
 .icon-button { display: grid; width: 40px; height: 40px; place-items: center; }
 .icon-button svg { width: 23px; fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; }
 
-main { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
-.welcome { padding: 30px 20px 22px; }
+main {
+  padding-top: calc(58px + env(safe-area-inset-top));
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+}
+.welcome {
+  position: sticky;
+  z-index: 0;
+  top: calc(58px + env(safe-area-inset-top));
+  padding: 30px 20px 22px;
+}
 .eyebrow { margin: 0 0 7px; color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .08em; }
 .welcome h1 { margin: 0 0 22px; font-family: ui-serif, "Hiragino Mincho ProN", serif; font-size: clamp(28px, 8vw, 36px); line-height: 1.38; letter-spacing: .02em; }
 .quick-prompt {
@@ -79,7 +90,15 @@ main { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
 .quick-prompt small { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .quick-prompt > span:last-child { color: var(--muted); font-size: 24px; }
 
-.timeline-section { border-top: 8px solid rgba(234, 231, 222, .72); }
+.timeline-section {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border-top: 8px solid rgba(234, 231, 222, .72);
+  border-radius: 22px 22px 0 0;
+  background: var(--bg);
+  box-shadow: 0 -10px 22px rgba(45, 50, 42, .04);
+}
 .section-heading { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 10px; }
 .section-heading h2 { margin: 0; font-size: 16px; letter-spacing: .02em; }
 .filter-button { display: flex; align-items: center; gap: 5px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--surface); font-size: 12px; }
