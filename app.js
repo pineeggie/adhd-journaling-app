@@ -48,6 +48,7 @@ let activePromptText = "";
 let activeFilter = "all";
 let activeView = "home";
 let editingId = null;
+let pendingImages = [];
 
 const $ = (selector) => document.querySelector(selector);
 const timeline = $("#timeline");
@@ -69,7 +70,12 @@ function loadEntries() {
 }
 
 function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function loadProfile() {
@@ -97,6 +103,16 @@ function safeProfileImage(image = profile.image) {
 function avatarHTML(image = profile.image, name = profile.displayName) {
   const safeImage = safeProfileImage(image);
   return safeImage ? `<img src="${safeImage}" alt="" />` : escapeHTML(profileInitial(name));
+}
+
+function safeEntryImage(image) {
+  return typeof image === "string" && /^data:image\/(?:png|jpe?g|webp);base64,/.test(image) ? image : "";
+}
+
+function entryImagesHTML(entry) {
+  const images = Array.isArray(entry.images) ? entry.images.map(safeEntryImage).filter(Boolean).slice(0, 4) : [];
+  if (!images.length) return "";
+  return `<div class="entry-images image-grid-${images.length}">${images.map((image, index) => `<img src="${image}" alt="添付画像 ${index + 1}" loading="lazy" />`).join("")}</div>`;
 }
 
 function renderProfile() {
@@ -146,7 +162,8 @@ function render() {
           <button class="entry-menu" type="button" data-action="delete" aria-label="このメモを削除">···</button>
         </div>
         ${entry.prompt ? `<p class="entry-prompt">✦ ${escapeHTML(entry.prompt)}</p>` : ""}
-        <p class="entry-text">${escapeHTML(entry.text)}</p>
+        ${entry.text ? `<p class="entry-text">${escapeHTML(entry.text)}</p>` : ""}
+        ${entryImagesHTML(entry)}
         <div class="entry-meta">
           ${entry.mood ? `<span class="mood-badge">${moodEmoji[entry.mood]} ${entry.mood}</span>` : ""}
           ${entry.tags.map((tag) => `<span class="tag-badge"># ${escapeHTML(tag)}</span>`).join("")}
@@ -174,6 +191,7 @@ function openComposer(prompt = "", entry = null) {
   editingId = entry?.id || null;
   selectedMood = entry?.mood || "";
   selectedTags = entry?.tags ? [...entry.tags] : [];
+  pendingImages = Array.isArray(entry?.images) ? entry.images.map(safeEntryImage).filter(Boolean).slice(0, 4) : [];
   entryText.value = entry?.text || "";
   $("#composeTitle").textContent = entry ? "メモを編集" : "";
   const promptChip = $("#activePrompt");
@@ -182,6 +200,7 @@ function openComposer(prompt = "", entry = null) {
   $("#moodOptions").querySelectorAll("button").forEach((button) => button.classList.toggle("selected", button.dataset.mood === selectedMood));
   $("#tagOptions").querySelectorAll("button").forEach((button) => button.classList.toggle("selected", selectedTags.includes(button.dataset.tag)));
   updateComposerState();
+  renderComposerImages();
   sheet.classList.remove("hidden");
   backdrop.classList.remove("hidden");
   document.body.style.overflow = "hidden";
@@ -194,6 +213,8 @@ function closeComposer() {
   document.body.style.overflow = "";
   entryText.value = "";
   editingId = null;
+  pendingImages = [];
+  renderComposerImages();
 }
 
 function openSettings() {
@@ -243,18 +264,59 @@ function resizeProfileImage(file) {
   });
 }
 
+function resizeEntryImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = reject;
+      image.onload = () => {
+        const maxDimension = 1024;
+        const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+        const width = Math.max(1, Math.round(image.naturalWidth * scale));
+        const height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#fff";
+        context.fillRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderComposerImages() {
+  const preview = $("#composerImages");
+  preview.innerHTML = pendingImages.map((image, index) => `
+    <div class="composer-image">
+      <img src="${image}" alt="添付画像 ${index + 1}" />
+      <button type="button" data-remove-image="${index}" aria-label="添付画像 ${index + 1} を削除">×</button>
+    </div>
+  `).join("");
+  preview.classList.toggle("hidden", pendingImages.length === 0);
+  $("#imageCount").textContent = `${pendingImages.length} / 4`;
+  $("#imagePickerButton").disabled = pendingImages.length >= 4;
+}
+
 function updateComposerState() {
   const length = entryText.value.length;
   $("#charCount").textContent = `${length} / 500`;
-  saveButton.disabled = entryText.value.trim().length === 0;
+  saveButton.disabled = entryText.value.trim().length === 0 && pendingImages.length === 0;
 }
 
 function saveEntry() {
   const text = entryText.value.trim();
-  if (!text) return;
+  if (!text && pendingImages.length === 0) return;
+  const previousEntries = entries.map((entry) => ({ ...entry, tags: [...entry.tags], images: Array.isArray(entry.images) ? [...entry.images] : [] }));
   if (editingId) {
     const entry = entries.find((item) => item.id === editingId);
-    Object.assign(entry, { text, mood: selectedMood, tags: selectedTags, prompt: activePromptText || entry.prompt });
+    Object.assign(entry, { text, mood: selectedMood, tags: selectedTags, images: [...pendingImages], prompt: activePromptText || entry.prompt });
     showToast("メモを更新しました");
   } else {
     entries.push({
@@ -263,12 +325,17 @@ function saveEntry() {
       mood: selectedMood,
       tags: selectedTags,
       prompt: activePromptText,
+      images: [...pendingImages],
       loved: false,
       createdAt: new Date().toISOString()
     });
     showToast("タイムラインに残しました");
   }
-  persist();
+  if (!persist()) {
+    entries = previousEntries;
+    showToast("保存容量が足りません。画像を減らしてください");
+    return;
+  }
   closeComposer();
   activeView = "home";
   setActiveNav("home");
@@ -303,6 +370,37 @@ $("#cancelCompose").addEventListener("click", closeComposer);
 backdrop.addEventListener("click", closeActiveSheet);
 entryText.addEventListener("input", updateComposerState);
 saveButton.addEventListener("click", saveEntry);
+
+$("#imagePickerButton").addEventListener("click", () => $("#entryImageInput").click());
+$("#entryImageInput").addEventListener("change", async (event) => {
+  const available = 4 - pendingImages.length;
+  const selected = Array.from(event.target.files);
+  const files = selected.slice(0, available);
+  if (selected.length > available) showToast(`画像は4枚まで添付できます`);
+  const invalid = files.some((file) => !file.type.startsWith("image/"));
+  if (invalid) {
+    event.target.value = "";
+    return showToast("画像ファイルを選んでください");
+  }
+  $("#imagePickerButton").classList.add("loading");
+  try {
+    for (const file of files) pendingImages.push(await resizeEntryImage(file));
+    renderComposerImages();
+    updateComposerState();
+  } catch {
+    showToast("画像を読み込めませんでした");
+  } finally {
+    $("#imagePickerButton").classList.remove("loading");
+    event.target.value = "";
+  }
+});
+$("#composerImages").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-remove-image]");
+  if (!button) return;
+  pendingImages.splice(Number(button.dataset.removeImage), 1);
+  renderComposerImages();
+  updateComposerState();
+});
 
 $("#profileButton").addEventListener("click", openSettings);
 $("#cancelSettings").addEventListener("click", closeSettings);
