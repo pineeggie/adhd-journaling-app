@@ -71,18 +71,18 @@ main::-webkit-scrollbar { display: none; }
 .welcome {
   position: sticky;
   z-index: 0;
-  top: calc(58px + env(safe-area-inset-top));
-  padding: 30px 20px 22px;
+  top: 0;
+  padding: 16px 20px 18px;
 }
 .eyebrow { margin: 0 0 7px; color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .08em; }
-.welcome h1 { margin: 0 0 22px; font-family: ui-serif, "Hiragino Mincho ProN", serif; font-size: clamp(28px, 8vw, 36px); line-height: 1.38; letter-spacing: .02em; }
+.welcome h1 { margin: 0 0 14px; font-family: ui-serif, "Hiragino Mincho ProN", serif; font-size: clamp(26px, 7.3vw, 34px); line-height: 1.28; letter-spacing: .02em; }
 .quick-prompt {
   display: grid;
   grid-template-columns: 34px 1fr 16px;
   gap: 10px;
   align-items: center;
   width: 100%;
-  padding: 13px 14px;
+  padding: 10px 14px;
   border: 1px solid #dce4dc;
   border-radius: 16px;
   text-align: left;
